@@ -1,14 +1,12 @@
 `timescale 1 ns / 1 ps
 
-module draw_rct (
+module draw_rect_char (
     vga_if.in vii, 
     vga_if.out vio,
-    input  logic [11:0] xpos,
-    input  logic [11:0] ypos,
     input  logic clk,
     input  logic rst, 
-    input  logic [11:0] rgb_pixel,
-    output logic [11:0] pixel_addr
+    input  logic [7:0] char_pixels,
+    output logic [10:0] addr
 
     );
     import vga_pkg::*;
@@ -16,9 +14,9 @@ module draw_rct (
  */
 
  vga_if vga_nxt ();
- logic [11:0] pixel_addr_nxt;
+ logic [10:0] addr_nxt;
 
-always_ff @(posedge clk) begin : bg_ff_blk
+always_ff @(posedge clk) begin 
     if (rst) begin
         vio.vcount <= '0;
         vio.vsync  <= '0;
@@ -27,7 +25,7 @@ always_ff @(posedge clk) begin : bg_ff_blk
         vio.hsync  <= '0;
         vio.hblnk  <= '0;
         vio.rgb    <= '0;
-        pixel_addr <= '0;
+        addr <= '0;
 
     end else begin
         vio.vcount <= vii.vcount;
@@ -37,15 +35,15 @@ always_ff @(posedge clk) begin : bg_ff_blk
         vio.hsync  <= vii.hsync;
         vio.hblnk  <= vii.hblnk;
         vio.rgb    <= vga_nxt.rgb;
-        pixel_addr <= pixel_addr_nxt;
+        addr <= addr_nxt;
     end
 end
 
 
 always_comb begin
-    pixel_addr_nxt = {6'(vii.vcount - ypos), 6'(vii.hcount - xpos)};
-    if ( vii.hcount >= xpos + 2 && vii.hcount <= xpos + WID_RCT + 2  && vii.vcount >= ypos && vii.vcount <= ypos + HGH_RCT ) begin
-    vga_nxt.rgb = rgb_pixel;
+    addr_nxt = { vii.hcount [9:3], vii.vcount [0:3]};
+    if (char_pixels)
+        vga_nxt.rgb = 12'hf_0_0;
 
 /*
     else if ( vcount_in >= X_RCTSTR && vcount_in <= X_RCTSTR + WID_RCT && hcount_in == Y_RCTSTR + HGH_RCT )
@@ -55,7 +53,7 @@ always_comb begin
     else if ( hcount_in >= Y_RCTSTR && hcount_in <= Y_RCTSTR + HGH_RCT && vcount_in == X_RCTSTR )
         rgb_nxt = COL_RCT;
 */
-    end else begin 
+    else begin 
     vga_nxt.rgb = vii.rgb;
     end
 end
